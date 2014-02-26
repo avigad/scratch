@@ -88,8 +88,7 @@ definition mul {S : StructClass} {M : structure S} {M' : structure MulStruct}
   let m' := data M' in
   let x' := cast' e x in
   let y' := cast' e y in
-    cast' (symm e) x'
---    cast (symm e) (m' (cast e x) (cast e y))
+    cast' (symm e) (m' x' y')
 
 -- infixl 70 * : mul
 
