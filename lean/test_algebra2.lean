@@ -13,6 +13,20 @@ import macros
 -- note that this will ensure that we are only using casts on small types
 definition cast' {A B : Type} (e : A = B) := cast (to_heq e)
 
+variable Sigma (A : Type) (B : A → Type) : Type
+variable Pair {A : Type} {B : A → Type} (a : A) (b : B a) : Sigma A B
+variable Fst {A : Type} {B : A → Type} (p : Sigma A B) : A
+variable Snd {A : Type} {B : A → Type} (p : Sigma A B) : B (Fst p)
+axiom FstAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Fst A B (Pair a b) = a
+axiom SndAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Snd A B (Pair a b) == b
+
+variable A : Type 
+variable B : A → Type 
+variable a : A 
+variable b : B a
+
+check @Snd A B (Pair a b)
+
 --
 -- Classes of structures, and axiomatic classes of structures
 --
