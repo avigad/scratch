@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------------------------
 --
--- test_pairs.lean
+-- sigmas.lean
 -- Jeremy Avigad
 --
 -- experimenting with axiomatized pairs
