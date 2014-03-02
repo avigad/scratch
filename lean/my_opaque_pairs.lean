@@ -56,12 +56,12 @@ theorem SndAx {A : (Type 1)} {B : A → (Type 1)} (a : A) (b : B a) : @Snd A B (
 set_opaque Fst true
 set_opaque Snd true
 
+axiom Sigma_inj {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} : Sigma B = Sigma B' → B = B'
+
 
 --
 -- Properties of Sigma types
 -- 
-
-axiom Sigma_inj {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} : Sigma B = Sigma B' → B = B'
 
 theorem Fst_heq {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} {p : Sigma B} {p' : Sigma B'} :
   p == p' → Fst p == Fst p'
@@ -73,18 +73,54 @@ theorem Fst_heq {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} {p : S
     take q : Sigma B, assume e : p == q, (subst (hrefl (Fst p)) (to_eq e)), 
   substp P H1 H p' e
 
+theorem Fst_heq' {A : (Type 1)} {A' : (Type 1)} (e : A = A') {B : A → (Type 1)} 
+  {B' : A' → (Type 1)} {p : Sigma B} {p' : Sigma B'} :
+    p == p' → Fst p == Fst p'
+:= 
+  take he,
+  let H1 := substp (λ	X, ∀ B : A → (Type 1), ∀ B' : X → (Type 1), 
+    ∀ p : Sigma B, ∀ p' : Sigma B', p == p' → Fst p == Fst p') (@Fst_heq A) e in
+  H1 B B' p p' he
+
+theorem Snd_heq {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} {p : Sigma B} {p' : Sigma B'} :
+  p == p' → Snd p == Snd p'
+:=
+  assume e : p == p',
+  have H : B = B', from Sigma_inj (to_eq (type_eq e)),
+  let P := λ T : A → (Type 1), ∀ q : Sigma T, p == q → Snd p == Snd q in
+  have H1 : P B, from
+    take q : Sigma B, assume e : p == q, (subst (hrefl (Snd p)) (to_eq e)), 
+  substp P H1 H p' e
+
+theorem Snd_heq' {A : (Type 1)} {A' : (Type 1)} (e : A = A') {B : A → (Type 1)} 
+  {B' : A' → (Type 1)} {p : Sigma B} {p' : Sigma B'} :
+  p == p' → Snd p == Snd p'
+:=
+  take he,
+  let H1 := substp (λ	X, ∀ B : A → (Type 1), ∀ B' : X → (Type 1), 
+    ∀ p : Sigma B, ∀ p' : Sigma B', p == p' → Snd p == Snd p') (@Snd_heq A) e in
+  H1 B B' p p' he
+
+
+-- interesting: after the proof was done, I found I could remove most of the implicit arguments
+theorem pair_eta {A : (Type 1)} (B : A → (Type 1)) (p : Sigma B) : p = Pair (Fst p) (Snd p)
+:= 
+  let P := λ p, p = Pair (Fst p) (Snd p) in
+  have H : ∀ a : A, ∀ b : B a, P (Pair a b), from
+    take a : A, 
+    take b : B a,
+    have H1 : Pair a == Pair (Fst (Pair a b)), 
+      from hcongr (hrefl _) (to_heq (symm (@FstAx A B a b))),
+    have H2 : Pair a b == Pair (Fst (Pair a b)) (@Snd A B (Pair a b)),
+      from hcongr H1 (hsymm (SndAx a b)),
+    show Pair a b = Pair (Fst (Pair a b)) (Snd (Pair a b)), from to_eq H2,
+  sigma_rec H p
+
+check @pair_eta
+
 -- Conjectures
 -- At least they all type check...
 --
--- -- actual equality here!
--- theorem pair_eta {A : (Type 1)} (B : A → (Type 1)) (p : Sigma B) : p = Pair (Fst p) (Snd p)
--- := 
---   let P := λ p, p = Pair (Fst p) (Snd p) in
---   have H : ∀ a : A, ∀ b : B a, P (Pair a b), from
---     take a : A, 
---     take b : B a,
---     _,
---   _
 
 -- theorem eq_pair {A : (Type 1)} {B : A → (Type 1)} (p : Sigma B) (a : A) (b : B a)
 --     (e1 : Fst p = a) (e2 : Snd p == b) : p = Pair a b
@@ -101,6 +137,185 @@ theorem Fst_heq {A : (Type 1)} {B : A → (Type 1)} {B' : A → (Type 1)} {p : S
 -- := 
 --   _
 
+
+--
+-- Triples
+-- 
+
+definition Sigma2 {A1 : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) : (Type 1)
+  := @Sigma A1 (λ a1 : A1, @Sigma (A2 a1) (A3 a1))
+
+definition Triple {A1 : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+  (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) : @Sigma2 A1 A2 A3 
+:= @Pair A1 (λ x, @Sigma (A2 x) (A3 x)) a1 (@Pair (A2 a1) (A3 a1) a2 a3)
+
+definition pr31 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+  (p : @Sigma2 A1 A2 A3) : A1 
+:= Fst p 
+
+definition pr32 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+  (p : @Sigma2 A1 A2 A3) : A2 (pr31 p)
+:= Fst (Snd p)
+
+definition pr33 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+  (p : @Sigma2 A1 A2 A3) : A3 (pr31 p) (pr32 p)
+:= Snd (Snd p)
+
+theorem pr31_Triple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) :
+  pr31 (@Triple A1 A2 A3 a1 a2 a3) = a1
+:= FstAx _ _
+
+theorem pr32_Triple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) :
+  pr32 (@Triple A1 A2 A3 a1 a2 a3) == a2
+:=
+  have H : Snd (Triple A3 a1 a2 a3) == Pair a2 a3, from SndAx _ _,
+  have H1 : A2 (Fst (Triple A3 a1 a2 a3)) = A2 a1, from congr2 _ (pr31_Triple_eq _ _ _ _),
+  have H2 : pr32 (Triple A3 a1 a2 a3) == Fst (Pair a2 a3), from Fst_heq' H1 H,
+  have H3 : Fst (Pair a2 a3) == a2, from to_heq (FstAx _ _),
+  htrans H2 H3
+
+theorem pr33_Triple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) :
+  pr33 (@Triple A1 A2 A3 a1 a2 a3) == a3
+:=
+  have H : Snd (Triple A3 a1 a2 a3) == Pair a2 a3, from SndAx _ _,
+  have H1 : A2 (Fst (Triple A3 a1 a2 a3)) = A2 a1, from congr2 _ (pr31_Triple_eq _ _ _ _),
+  have H2 : pr33 (Triple A3 a1 a2 a3) == Snd (Pair a2 a3), from Snd_heq' H1 H,
+  have H3 : Snd (Pair a2 a3) == a3, from SndAx _ _,
+  htrans H2 H3
+
+theorem pr31_heq {A1 A1' : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    {A2' : A1' → (Type 1)} (A3' : ∀ a1 : A1', A2' a1 → (Type 1)) 
+    {p : @Sigma2 A1 A2 A3} {p' : @Sigma2 A1' A2' A3'} (e : A1 = A1')
+  : p == p' → pr31 p == pr31 p'
+:= Fst_heq' e
+
+theorem pr32_heq {A1 A1' : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    {A2' : A1' → (Type 1)} (A3' : ∀ a1 : A1', A2' a1 → (Type 1)) 
+    {p : @Sigma2 A1 A2 A3} {p' : @Sigma2 A1' A2' A3'} (e1 : A1 = A1') (e2 : A2 == A2')
+  : p == p' → pr32 p == pr32 p'
+:= 
+  assume e : p == p',
+  have H1 : Fst p == Fst p', from Fst_heq' e1 e,
+  have H2 : Snd p == Snd p', from Snd_heq' e1 e,
+  have H3 : A2 (Fst p) == A2' (Fst p'), from hcongr e2 H1,
+  let e3 := to_eq H3 in
+  show pr32 p == pr32 p', from Fst_heq' e3 H2
+
+theorem pr33_heq {A1 A1' : (Type 1)} {A2 : A1 → (Type 1)} (A3 : ∀ a1 : A1, A2 a1 → (Type 1)) 
+    {A2' : A1' → (Type 1)} (A3' : ∀ a1 : A1', A2' a1 → (Type 1)) 
+    {p : @Sigma2 A1 A2 A3} {p' : @Sigma2 A1' A2' A3'} (e1 : A1 = A1') (e2 : A2 == A2')
+  : p == p' → pr33 p == pr33 p'
+:= 
+  assume e : p == p',
+  have H1 : Fst p == Fst p', from Fst_heq' e1 e,
+  have H2 : Snd p == Snd p', from Snd_heq' e1 e,
+  have H3 : A2 (Fst p) == A2' (Fst p'), from hcongr e2 H1,
+  let e3 := to_eq H3 in
+  show pr33 p == pr33 p', from Snd_heq' e3 H2
+
+set_opaque Sigma2 true
+set_opaque Triple true
+set_opaque pr31 true
+set_opaque pr32 true
+set_opaque pr33 true
+
+--
+-- Quadruples
+-- 
+
+definition Sigma3 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+    (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)) : (Type 1)
+  := @Sigma A1 (λ a1 : A1, @Sigma2 (A2 a1) (A3 a1) (A4 a1))
+
+definition Quadruple {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)} 
+    (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)) (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2)
+    (a4 : A4 a1 a2 a3)
+:= @Pair A1 (λ x : A1, @Sigma2 (A2 x) (A3 x) (A4 x)) a1 (@Triple (A2 a1) (A3 a1) (A4 a1) a2 a3 a4)
+
+definition pr41 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+    {A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)}   
+  (p : @Sigma3 A1 A2 A3 A4) := Fst p 
+
+definition pr42 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+    {A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)}   
+  (p : @Sigma3 A1 A2 A3 A4) 
+:= @pr31 (A2 (Fst p)) (A3 (Fst p)) (A4 (Fst p)) (Snd p) 
+
+definition pr43 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+    {A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)}   
+  (p : @Sigma3 A1 A2 A3 A4) 
+:= @pr32 (A2 (Fst p)) (A3 (Fst p)) (A4 (Fst p)) (Snd p) 
+
+definition pr44 {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+    {A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1)}   
+  (p : @Sigma3 A1 A2 A3 A4) 
+:= @pr33 (A2 (Fst p)) (A3 (Fst p)) (A4 (Fst p)) (Snd p)
+
+theorem pr41_Quadruple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+   (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1))
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) (a4 : A4 a1 a2 a3) :
+  pr41 (@Quadruple A1 A2 A3 A4 a1 a2 a3 a4) = a1
+:= FstAx _ _
+
+theorem pr42_Quadruple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+   (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1))
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) (a4 : A4 a1 a2 a3) :
+  pr42 (@Quadruple A1 A2 A3 A4 a1 a2 a3 a4) == a2
+:=
+  let q1234 := @Quadruple A1 A2 A3 A4 a1 a2 a3 a4 in
+  let t234 := @Triple (A2 a1) (A3 a1) (A4 a1) a2 a3 a4 in
+  have H1 : Fst q1234 = a1, from FstAx _ _,
+  have H2 : Snd q1234 == t234, from SndAx _ _,
+  have H3 : A2 (Fst q1234) = A2 a1, from congr2 A2 H1,
+  have H4 : pr42 q1234 == pr31 t234,
+    from pr31_heq (A4 (Fst q1234)) (A4 a1) H3 H2,
+  have H5 : pr31 t234 == a2, from to_heq (pr31_Triple_eq _ _ _ _),
+  htrans H4 H5
+
+theorem pr43_Quadruple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+   (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1))
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) (a4 : A4 a1 a2 a3) :
+  pr43 (@Quadruple A1 A2 A3 A4 a1 a2 a3 a4) == a3
+:=
+  let q1234 := @Quadruple A1 A2 A3 A4 a1 a2 a3 a4 in
+  let t234 := @Triple (A2 a1) (A3 a1) (A4 a1) a2 a3 a4 in
+  have H1 : Fst q1234 = a1, from FstAx _ _,
+  have H2 : Snd q1234 == t234, from SndAx _ _,
+  have H3 : A2 (Fst q1234) = A2 a1, from congr2 A2 H1,
+  have H3' : A3 (Fst q1234) == A3 a1, from hcongr (hrefl A3) (to_heq H1),
+  have H4 : pr43 q1234 == pr32 t234,
+    from pr32_heq (A4 (Fst q1234)) (A4 a1) H3 H3' H2,
+  have H5 : pr32 t234 == a3, from pr32_Triple_eq _ _ _ _,
+  htrans H4 H5
+
+theorem pr44_Quadruple_eq {A1 : (Type 1)} {A2 : A1 → (Type 1)} {A3 : ∀ a1 : A1, A2 a1 → (Type 1)}
+   (A4 : ∀ (a1 : A1) (a2 : A2 a1), A3 a1 a2 → (Type 1))
+    (a1 : A1) (a2 : A2 a1) (a3 : A3 a1 a2) (a4 : A4 a1 a2 a3) :
+  pr44 (@Quadruple A1 A2 A3 A4 a1 a2 a3 a4) == a4
+:=
+  let q1234 := @Quadruple A1 A2 A3 A4 a1 a2 a3 a4 in
+  let t234 := @Triple (A2 a1) (A3 a1) (A4 a1) a2 a3 a4 in
+  have H1 : Fst q1234 = a1, from FstAx _ _,
+  have H2 : Snd q1234 == t234, from SndAx _ _,
+  have H3 : A2 (Fst q1234) = A2 a1, from congr2 A2 H1,
+  have H3' : A3 (Fst q1234) == A3 a1, from hcongr (hrefl A3) (to_heq H1),
+  have H4 : pr44 q1234 == pr33 t234,
+    from pr33_heq (A4 (Fst q1234)) (A4 a1) H3 H3' H2,
+  have H5 : @pr33 (A2 a1) (A3 a1) (A4 a1) t234 == a4, 
+    from @pr33_Triple_eq (A2 a1) (A3 a1) (A4 a1) a2 a3 a4,
+  htrans H4 H5
+
+set_opaque Sigma3 true
+set_opaque Quadruple true
+set_opaque pr41 true
+set_opaque pr42 true
+set_opaque pr43 true
+set_opaque pr44 true
+
+ 
 
 --
 -- Experiment with Pair a1 (Pair a2 (Pair a3 a4))
