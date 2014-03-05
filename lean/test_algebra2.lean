@@ -9,23 +9,25 @@
 
 import macros
 
+-- universe U ≥ 2
+
 -- simulate the "real" version of cast
 -- note that this will ensure that we are only using casts on small types
 definition cast' {A B : Type} (e : A = B) := cast (to_heq e)
 
-variable Sigma (A : Type) (B : A → Type) : Type
-variable Pair {A : Type} {B : A → Type} (a : A) (b : B a) : Sigma A B
-variable Fst {A : Type} {B : A → Type} (p : Sigma A B) : A
-variable Snd {A : Type} {B : A → Type} (p : Sigma A B) : B (Fst p)
-axiom FstAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Fst A B (Pair a b) = a
-axiom SndAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Snd A B (Pair a b) == b
+-- variable Sigma (A : Type) (B : A → Type) : Type
+-- variable Pair {A : Type} {B : A → Type} (a : A) (b : B a) : Sigma A B
+-- variable Fst {A : Type} {B : A → Type} (p : Sigma A B) : A
+-- variable Snd {A : Type} {B : A → Type} (p : Sigma A B) : B (Fst p)
+-- axiom FstAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Fst A B (Pair a b) = a
+-- axiom SndAx {A : Type} {B : A → Type} (a : A) (b : B a) : @Snd A B (Pair a b) == b
 
-variable A : Type 
-variable B : A → Type 
-variable a : A 
-variable b : B a
+-- variable A : Type 
+-- variable B : A → Type 
+-- variable a : A 
+-- variable b : B a
 
-check @Snd A B (Pair a b)
+-- check @Snd A B (Pair a b)
 
 --
 -- Classes of structures, and axiomatic classes of structures
@@ -33,133 +35,160 @@ check @Snd A B (Pair a b)
 
 -- A "structure" consists of a carrier, and some data (whose type depends on the carrier)
 
-definition StructClass : (Type 1) := Type → Type   -- the type of the data
+definition StructType : (Type 1) := Type → Type   -- the type of the data
 
-definition structure (S : StructClass) : (Type 1)
-:= sig T : Type, S T
+-- record type
+variable Structure (S : StructType) : (Type 1)
 
-definition mk_structure {S : StructClass} {T : Type} (d : S T) : structure S 
-:= pair T d
+-- constructor
+variable mk_Structure {S : StructType} {T : Type} (d : S T) : Structure S 
 
-definition carrier {S : StructClass} (M : structure S) : Type
-:= proj1 M
+-- first projection
+variable carrier {S : StructType} (M : Structure S) : Type
 
-definition data {S : StructClass} (M : structure S) : S (carrier M)
-:= proj2 M
+-- second projection
+variable data {S : StructType} (M : Structure S) : S (carrier M)
 
-set_opaque structure true
-set_opaque mk_structure true
-set_opaque carrier true
-set_opaque data true
+axiom carrier_structure_eq {S : StructType} {T : Type} (d : S T) : carrier (mk_Structure d) = T
+
+axiom data_structure_eq {S : StructType} {T : Type} (d : S T) : data (mk_Structure d) == d
+
 
 -- An "axiomatic class" is a class of structures satisfying some predicate (the "axioms")
 
-definition AxClass : (Type 1)
-:= sig S : StructClass, structure S → Bool
+-- record type
+variable AxClass : (Type 1)
 
-definition mk_AxClass (S : StructClass) (P : structure S → Bool)
-:= pair S P
+-- constructor
+variable mk_AxClass {S : StructType} (P : Structure S → Bool) : AxClass
 
--- Coercion from AxClass to StructClass
-definition struct_class (C : AxClass) : StructClass
-:= proj1 C
+-- first projection
+variable struct_type (C : AxClass) : StructType
 
-definition axioms {C : AxClass} (M : structure (struct_class C))
-:= proj2 C M
+-- second projection
+variable axioms {C : AxClass} (M : Structure (struct_type C)) : Bool
 
-definition instance (C : AxClass) : (Type 1)
-:= sig M : structure (struct_class C), axioms M
+axiom struct_type_axclass_eq {S : StructType} (P : Structure S → Bool) : 
+  struct_type (mk_AxClass P) = S
 
-definition mk_instance (C : AxClass) (M : structure (struct_class C)) (H : axioms M)
-:= pair M H
+axiom axioms_axclass_eq {S : StructType} (P : Structure S → Bool) : 
+  @axioms (mk_AxClass P) == P
 
-definition struct {C : AxClass} (M : instance C)
-:= proj1 M
 
-definition hyps {C : AxClass} (M : instance C) : axioms (struct M)
-:= proj2 M
+-- An instance of the class is a structure satisfying the axioms
 
--- set_opaque AxClass true
-set_opaque mk_AxClass true
--- set_opaque axioms true
--- set_opaque struct true
--- set_opaque hyps true
-set_opaque instance true
+-- record type
+variable Instance (C : AxClass) : (Type 1)
+
+-- constructor
+variable mk_Instance {C : AxClass} {M : Structure (struct_type C)} (H : axioms M) : Instance C
+-- := pair M H
+
+-- first projection
+variable struct {C : AxClass} (M : Instance C) : Structure (struct_type C)
+
+-- second projection
+variable hyps {C : AxClass} (M : Instance C) : axioms (struct M)
+
+axiom struct_instance_eq {C : AxClass} {M : Structure (struct_type C)} (H : axioms M) : 
+  struct (mk_Instance H) = M
+
+axiom hyps_instance_eq {C : AxClass} {M : Structure (struct_type C)} (H : axioms M) : 
+  hyps (mk_Instance H) == H
+
+
 
 --
--- Examples
+-- Some axiomatic classes
 --
 
--- multiplication (for overloading *)
+--
+-- Structure MulStruct (for overloading *)
+--
 
-definition MulStruct : StructClass
+definition MulStruct : StructType
 := λ T, T → T → T
 
+definition MulClass : AxClass := mk_AxClass (λ M : Structure MulStruct, true)
+
 -- ultimately, the cast e should be inserted automatically
-definition mul {S : StructClass} {M : structure S} {M' : structure MulStruct} 
-  (e : carrier M = carrier M') (x : carrier M) (y : carrier M) : carrier M
+definition mul {C : AxClass} {M : Instance C} {M' : Instance MulClass} 
+   (e : @eq Type (carrier (struct M)) (carrier (struct M'))) 
+   (x : carrier (struct M)) (y : carrier (struct M)) : carrier (struct M)
 := 
-  let m' := data M' in
+  have e' : struct_type MulClass = MulStruct, from struct_type_axclass_eq _,
+  let m' := data (cast' e' (struct M')) in
   let x' := cast' e x in
   let y' := cast' e y in
-    cast' (symm e) (m' x' y')
+  cast' (symm e) (m' x' y')
 
--- infixl 70 * : mul
+
+--
+-- AxClass Semigroup : associative MulStruct
+--
+
+definition Semigroup := mk_AxClass (λ M : Structure MulStruct, 
+  let m := data M in ∀ x y z : carrier M, m (m x y) z = m x (m y z))
+
+theorem mul_assoc {C : AxClass} {M : Instance C} {M' : Instance Semigroup} (e : carrier (struct M) = carrier (struct M'))
+  : ∀ x y z : carrier (struct M), mul e (mul e x y) z = mul e x (mul e y z)
+:= 
+  _
 
 -- The cast e signals that we are viewing M as the MulStruct M'.
-definition mul_is_assoc {S : StructClass} {M : structure S} {M' : structure MulStruct} 
-  (e : carrier M = carrier M') : Bool
-:=  ∀ x y z : carrier M, mul e (mul e x y) z = mul e x (mul e y z)
+-- definition mul_is_assoc {S : StructType} {M : Structure S} {M' : Structure MulStruct} 
+--   (e : carrier M = carrier M') : Bool
+-- :=  ∀ x y z : carrier M, mul e (mul e x y) z = mul e x (mul e y z)
 
--- once again, in practice, the fact that a multiplication is associative is a "hole"
--- that should be inferred automatically
-theorem mul_assoc {S : StructClass} {M : structure S} {M' : structure MulStruct} 
-    (e : carrier M = carrier M') (H : mul_is_assoc e) : 
-  ∀ x y z : carrier M, mul e (mul e x y) z = mul e x (mul e y z)
-:= H
+-- -- once again, in practice, the fact that a multiplication is associative is a "hole"
+-- -- that should be inferred automatically
+-- theorem mul_assoc {S : StructType} {M : Structure S} {M' : Structure MulStruct} 
+--   (e : carrier M = carrier M') (H : mul_is_assoc e) : 
+--   ∀ x y z : carrier M, mul e (mul e x y) z = mul e x (mul e y z)
+-- := H
 
-definition mul_is_comm {S : StructClass} {M : structure S} {M' : structure MulStruct} 
-  (e : carrier M = carrier M') : Bool
-:= 
-  ∀ x y z : carrier M, mul e x y = mul e y x
+-- definition mul_is_comm {S : StructClass} {M : structure S} {M' : structure MulStruct} 
+--   (e : carrier M = carrier M') : Bool
+-- := 
+--   ∀ x y z : carrier M, mul e x y = mul e y x
 
--- this is how you view a mulstruct as a mulstruct
-theorem mulstruct_as_mulstruct (M : structure MulStruct) : carrier M = carrier M
-:= refl _
+-- -- this is how you view a mulstruct as a mulstruct
+-- theorem mulstruct_as_mulstruct (M : structure MulStruct) : carrier M = carrier M
+-- := refl _
 
-set_opaque MulStruct true
-set_opaque mul true
-set_opaque mul_is_assoc true
-set_opaque mul_is_comm true
+-- set_opaque MulStruct true
+-- set_opaque mul true
+-- set_opaque mul_is_assoc true
+-- set_opaque mul_is_comm true
 
 
--- semigroups
+-- -- semigroups
 
--- note: mk_AxClass doesn't work here, even though it is defined to be pair
-definition Semigroup : AxClass
-:= pair MulStruct (λ M, (mul_is_assoc (mulstruct_as_mulstruct M)))
+-- -- note: mk_AxClass doesn't work here, even though it is defined to be pair
+-- definition Semigroup : AxClass
+-- := pair MulStruct (λ M, (mul_is_assoc (mulstruct_as_mulstruct M)))
 
--- this is how you view a semigroup as a mulstruct
-theorem semigroup_as_mulstruct (M : instance Semigroup) : carrier (struct M) = carrier (struct M)
-:= refl _
+-- -- this is how you view a semigroup as a mulstruct
+-- theorem semigroup_as_mulstruct (M : instance Semigroup) : carrier (struct M) = carrier (struct M)
+-- := refl _
 
--- to fill the hole in mul_assoc
+-- -- to fill the hole in mul_assoc
 
--- question: why do we have to make mul_is_assoc transparent here?
-variable M : instance Semigroup
-check hyps M -- axioms (struct M)
--- eval axioms M -- fails
-eval @axioms Semigroup (struct M)
--- if I make struct opaque, I need to write
--- eval @axioms Semigroup (@struct Semigroup M)
+-- -- question: why do we have to make mul_is_assoc transparent here?
+-- variable M : instance Semigroup
+-- check hyps M -- axioms (struct M)
+-- -- eval axioms M -- fails
+-- eval @axioms Semigroup (struct M)
+-- -- if I make struct opaque, I need to write
+-- -- eval @axioms Semigroup (@struct Semigroup M)
 
-set_opaque mul_is_assoc false
+-- set_opaque mul_is_assoc false
 
-theorem semigroup_mul_is_assoc (M : instance Semigroup) : 
-  mul_is_assoc (mulstruct_as_mulstruct (struct M))
-:= hyps M
+-- theorem semigroup_mul_is_assoc (M : instance Semigroup) : 
+--   mul_is_assoc (mulstruct_as_mulstruct (struct M))
+-- := hyps M
 
-set_opaque mul_is_assoc true
+-- set_opaque mul_is_assoc true
 
 
 
