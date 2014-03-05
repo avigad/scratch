@@ -9,11 +9,16 @@
 
 import macros
 
--- universe U ≥ 2
+universe U ≥ 3
+
+-- the "real" subst
+-- axiom subst' {A : (Type U)} {a b : A} {P : A → (Type 1)} (H1 : P a) (H2 : a = b) : P b
 
 -- simulate the "real" version of cast
--- note that this will ensure that we are only using casts on small types
-definition cast' {A B : Type} (e : A = B) := cast (to_heq e)
+definition cast' {A B : (Type 1)} (e : A = B) := cast (to_heq e)
+
+theorem cast'_heq {A B : (Type 1)} (e : A = B) (a : A) : cast' e a == a
+:= cast_heq _ _
 
 -- variable Sigma (A : Type) (B : A → Type) : Type
 -- variable Pair {A : Type} {B : A → Type} (a : A) (b : B a) : Sigma A B
@@ -109,19 +114,28 @@ axiom hyps_instance_eq {C : AxClass} {M : Structure (struct_type C)} (H : axioms
 definition MulStruct : StructType
 := λ T, T → T → T
 
+-- set_option pp::implicit true
+
 definition MulClass : AxClass := mk_AxClass (λ M : Structure MulStruct, true)
 
 -- ultimately, the cast e should be inserted automatically
 definition mul {C : AxClass} {M : Instance C} {M' : Instance MulClass} 
-   (e : @eq Type (carrier (struct M)) (carrier (struct M'))) 
+   (e : carrier (struct M) = carrier (struct M')) 
    (x : carrier (struct M)) (y : carrier (struct M)) : carrier (struct M)
 := 
-  have e' : struct_type MulClass = MulStruct, from struct_type_axclass_eq _,
-  let m' := data (cast' e' (struct M')) in
-  let x' := cast' e x in
-  let y' := cast' e y in
-  cast' (symm e) (m' x' y')
-
+  have e1 : struct_type MulClass = MulStruct, from struct_type_axclass_eq _,
+  have e2 : Structure (struct_type MulClass) = Structure MulStruct, from congr1 _ e1,
+  let M1 := cast' e2 (struct M') in
+  have H1 : M1 == struct M', from cast'_heq _ _,
+  have H2 : @carrier (struct_type MulClass) == @carrier MulStruct, 
+    from hcongr (hrefl _) (to_heq e1),
+  have H3 : carrier (struct M') = carrier M1, from to_eq (hcongr H2 (hsymm H1)),
+  have H4 : carrier (struct M) = carrier M1, from trans e H3,
+  let m' : MulStruct (carrier M1) := data M1 in
+  let x' : carrier M1 := cast' H4 x in
+  let y' := cast' H4 y in
+  let z' := m' x' y' in
+  cast' (symm H4) z'
 
 --
 -- AxClass Semigroup : associative MulStruct
@@ -130,10 +144,10 @@ definition mul {C : AxClass} {M : Instance C} {M' : Instance MulClass}
 definition Semigroup := mk_AxClass (λ M : Structure MulStruct, 
   let m := data M in ∀ x y z : carrier M, m (m x y) z = m x (m y z))
 
-theorem mul_assoc {C : AxClass} {M : Instance C} {M' : Instance Semigroup} (e : carrier (struct M) = carrier (struct M'))
-  : ∀ x y z : carrier (struct M), mul e (mul e x y) z = mul e x (mul e y z)
-:= 
-  _
+-- theorem mul_assoc {C : AxClass} {M : Instance C} {M' : Instance Semigroup} (e : carrier (struct M) = carrier (struct M'))
+--   : ∀ x y z : carrier (struct M), mul e (mul e x y) z = mul e x (mul e y z)
+-- := 
+--   _
 
 -- The cast e signals that we are viewing M as the MulStruct M'.
 -- definition mul_is_assoc {S : StructType} {M : Structure S} {M' : Structure MulStruct} 
