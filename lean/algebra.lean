@@ -237,11 +237,11 @@ axiom Semigroup_mul_assoc :  ∀ S : Semigroup, is_assoc (Semigroup_mul S)
 
 -- We can replace "Bool" by "(Type 1)" here and in the next lemma, for new recursion
 -- principles. But is that useful?
-theorem Semigroup_bundle (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
+theorem Semigroup_bundle' (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
   (∀ T m, is_assoc m → P T m) → (∀ S : Semigroup, P (Semigroup_carrier S) (Semigroup_mul S))
 := take f S, f (Semigroup_carrier S) (Semigroup_mul S) (Semigroup_mul_assoc S) 
 
-theorem Semigroup_unbundle (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
+theorem Semigroup_unbundle' (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
   (∀ S : Semigroup, P (Semigroup_carrier S) (Semigroup_mul S)) → (∀ T m, is_assoc m → P T m)
 := 
   take f T m, assume H : is_assoc m,
@@ -267,15 +267,15 @@ theorem mul_of_Semigroup_eq (S : Semigroup) : mul_of (mul_of_Semigroup S) = Semi
 := mul_def _
 
 -- now bundle and unbundle with type class version of "mul"
-theorem Semigroup_bundle' (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
+theorem Semigroup_bundle (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
   (∀ T m, is_assoc m → P T m) → 
     (∀ S : Semigroup, P (Semigroup_carrier S) (mul_of (mul_of_Semigroup S)))
-:= take f S, subst' (Semigroup_bundle P f S) (symm (mul_of_Semigroup_eq S))
+:= take f S, subst' (Semigroup_bundle' P f S) (symm (mul_of_Semigroup_eq S))
 
-theorem Semigroup_unbundle' (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
+theorem Semigroup_unbundle (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
   (∀ S : Semigroup, P (Semigroup_carrier S) (mul_of (mul_of_Semigroup S))) →
     (∀ T m, is_assoc m → P T m)
-:= take f, let f' := λ S, subst' (f S) (mul_of_Semigroup_eq S) in Semigroup_unbundle P f'
+:= take f, let f' := λ S, subst' (f S) (mul_of_Semigroup_eq S) in Semigroup_unbundle' P f'
 
 -- converts theorems to type class versions
 theorem Semigroup_unbundled_to_type_class 
@@ -288,7 +288,7 @@ theorem Semigroup_bundled_to_type_class
   (P : ∀ T : Type, ∀ m : T → T → T, Bool) 
     (f : ∀ S : Semigroup, P (Semigroup_carrier S) (mul_of (mul_of_Semigroup S)))
   (T : Type) (m : T → T → T) (mul_inst : has_mul T m) (assoc_inst : is_mul_assoc m) : P T m
-:= Semigroup_unbundle' P f T m (assoc_of_mul_assoc assoc_inst)
+:= Semigroup_unbundle P f T m (assoc_of_mul_assoc assoc_inst)
 
 
 set_opaque mul_of_Semigroup true
@@ -328,7 +328,7 @@ print ""
 eval type_of example1
 print ""
 
-definition example1_unbundled := Semigroup_unbundle' example1_body example1
+definition example1_unbundled := Semigroup_unbundle example1_body example1
 check example1_unbundled
 print ""
 eval type_of example1_unbundled
@@ -340,13 +340,13 @@ print ""
 eval type_of example1_as_type_class
 print ""
 
-definition example1_rebundled := Semigroup_bundle' example1_body example1_unbundled
+definition example1_rebundled := Semigroup_bundle example1_body example1_unbundled
 check example1_rebundled
 print ""
 eval type_of example1_rebundled
 print ""
 
-definition example1_rebundled_as_record := Semigroup_bundle example1_body example1_unbundled
+definition example1_rebundled_as_record := Semigroup_bundle' example1_body example1_unbundled
 check example1_rebundled_as_record
 print ""
 eval type_of example1_rebundled_as_record
