@@ -278,12 +278,12 @@ theorem Semigroup_unbundle (P : ∀ T : Type, ∀ m : T → T → T, Bool) :
 := take f, let f' := λ S, subst' (f S) (mul_of_Semigroup_eq S) in Semigroup_unbundle' P f'
 
 -- converts theorems to type class versions
+-- after synthesizing this term from P and f, the last four arguments should be made implicit
 theorem Semigroup_unbundled_to_type_class 
   (P : ∀ T : Type, ∀ m : T → T → T, Bool) (f : ∀ T m, is_assoc m → P T m) 
-  {T : Type} {m : T → T → T} {mul_inst : has_mul T m} {assoc_inst : is_mul_assoc m} : P T m
+  (T : Type) (m : T → T → T) (mul_inst : has_mul T m) (assoc_inst : is_mul_assoc m) : P T m
 := f T m (assoc_of_mul_assoc assoc_inst)
 
--- after synthesizing this term from P and f, the last four arguments should be made implicit
 theorem Semigroup_bundled_to_type_class 
   (P : ∀ T : Type, ∀ m : T → T → T, Bool) 
     (f : ∀ S : Semigroup, P (Semigroup_carrier S) (mul_of (mul_of_Semigroup S)))
