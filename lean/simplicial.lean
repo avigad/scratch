@@ -27,6 +27,7 @@ definition Delta := category.mk (λi j, inc_map i j) inc_comp @inc_id inc_comp_a
     inc_comp_idl inc_comp_idr
 
 definition Delta_op [instance] := opposite Delta
+instance type_category
 
 definition semisimplicial_strict : category (functor (opposite Delta) type_category) :=
 functor_category (opposite Delta) type_category
@@ -42,8 +43,8 @@ parameter X : SS0
 
 definition BD0_object (m : nat) := X
 definition BD0_morphism {i j : nat} (α : inc_map j i) (x : BD0_object i) : BD0_object j := x
-definition BD0_respect_id (i : nat) : BD0_morphism (@inc_id i) = λx, x := rfl
-definition BD0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
+theorem BD0_respect_id (i : nat) : BD0_morphism (@inc_id i) = λx, x := rfl
+theorem BD0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
   BD0_morphism (inc_comp α β) = BD0_morphism β ∘ BD0_morphism α := rfl
 
 definition BD0 : functor Delta_op type_category :=
@@ -66,26 +67,32 @@ context BDn'
 
 parameter X : SSn'
 
-definition BDn'_object (m : nat) :=
+definition dpr1_X : SSn := dpr1 X
+definition dpr2_X : BDn (dpr1 X) (succ n) → Type := dpr2 X
+
+definition BDn'_object  (m : nat) :=
   Σb : BDn (dpr1 X) m, Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α b)
 
-theorem test (i j : nat) (α : inc_map j i) (α' : inc_map (succ n) j) :
-  BDn (dpr1 X) (inc_comp α α') = (BDn (dpr1 X) α') ∘ (BDn (dpr1 X) α) :=
-@respect_comp nat Type Delta_op type_category (BDn (dpr1 X)) _ _ _ α' α
+definition BDn'_dpr1 {m : nat} (b : BDn'_object m) : BDn (dpr1 X) m := dpr1 b
+definition BDn'_dpr2 {m : nat} (b : BDn'_object m) :
+    Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α (BDn'_dpr1 b)) := dpr2 b
 
+-- set_option unifier.max_steps 100000
 -- set_option pp.implicit true
 -- set_option pp.coercions true
 definition BDn'_morphism {i j : nat} (α : inc_map j i) (b : BDn'_object i) : BDn'_object j :=
-  dpair (BDn (dpr1 X) α (dpr1 b))
+  dpair (BDn (dpr1_X) α (dpr1 b))
     (take α' : inc_map (succ n) j,
-      let t1 := (BDn (dpr1 X) (inc_comp α α')),
-	t2 := ((BDn (dpr1 X) α') ∘ (BDn (dpr1 X) α)) in
+      let t1 := BDn (dpr1_X) (inc_comp α α'),
+--	t2 := (BDn (dpr1_X) α') ∘ (BDn (dpr1_X) α) in
+	t2 := @category.compose _ type_category _ _ _ (BDn (dpr1_X) α') (BDn (dpr1_X) α) in
       have H : t1 = t2, from !respect_comp,
--- fails
---      let t3 := dpr2 b, t4 := inc_comp α α' in
-      let t3 := (typeof dpr2 b : _), t4 := inc_comp α α' in
+      let t3 := BDn'_dpr2 b, t4 := inc_comp α α' in
       let t5 := t3 t4 in
-      show dpr2 X (BDn (dpr1 X) α' (BDn (dpr1 X) α (dpr1 b))), from sorry)
+      have H1 : (t1 (BDn'_dpr1 b)) = (t2 (BDn'_dpr1 b)), from congr_fun H _,
+      have H2 : dpr2_X (t1 (BDn'_dpr1 b)) = dpr2_X (t2 (BDn'_dpr1 b)), from congr_arg _ H1,
+      show dpr2 X (BDn (dpr1_X) α' (BDn (dpr1_X) α (BDn'_dpr1 b))),
+	from cast H2 t5)
 
 end BDn'
 
