@@ -12,8 +12,8 @@ import logic algebra.category.constructions data.nat
 open nat sigma function category functor
 open category.opposite
 
--- For now, axiomatize increasing maps from i to j. Later we can construct them using lists,
--- or even ordinal types.
+-- For now, axiomatize increasing maps from i to j.
+-- Later we can construct them using lists or ordinal types.
 
 constant inc_map (i j  : nat) : Type
 constant inc_id {i : nat} : inc_map i i
@@ -29,70 +29,65 @@ definition Delta := category.mk (λi j, inc_map i j) inc_comp @inc_id inc_comp_a
 definition Delta_op [instance] := opposite Delta
 instance type_category
 
-definition semisimplicial_strict : category (functor (opposite Delta) type_category) :=
-functor_category (opposite Delta) type_category
 
-
--- at level 0: the connected components
+-- level 0: the connected components
+-- ---------------------------------
 
 definition SS0 := Type
 
 context BD0
 
-parameter X : SS0
+  parameter X : SS0
 
-definition BD0_object (m : nat) := X
-definition BD0_morphism {i j : nat} (α : inc_map j i) (x : BD0_object i) : BD0_object j := x
-theorem BD0_respect_id (i : nat) : BD0_morphism (@inc_id i) = λx, x := rfl
-theorem BD0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
-  BD0_morphism (inc_comp α β) = BD0_morphism β ∘ BD0_morphism α := rfl
+  definition BD0_object (m : nat) := X
+  definition BD0_morphism {i j : nat} (α : inc_map j i) (x : BD0_object i) : BD0_object j := x
+  theorem BD0_respect_id (i : nat) : BD0_morphism (@inc_id i) = λx, x := rfl
+  theorem BD0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
+    BD0_morphism (inc_comp α β) = BD0_morphism β ∘ BD0_morphism α := rfl
 
-definition BD0 : functor Delta_op type_category :=
-functor.mk BD0_object (@BD0_morphism) BD0_respect_id BD0_respect_comp
+  definition BD0 : functor Delta_op type_category :=
+  functor.mk BD0_object (@BD0_morphism) BD0_respect_id BD0_respect_comp
 
 end BD0
 
 
-context SSn' -- successor case
+-- successor step
+-- --------------
 
-parameter n : nat
+context SSn'
 
--- assume n case is done
-parameter SSn : Type
-parameter BDn (X : SSn) : functor Delta_op type_category
+  parameter n : nat
 
-definition SSn' := ΣX : SSn, (BDn X (succ n) → Type)
+  -- assume n case is done
+  parameter SSn : Type
+  parameter BDn (X : SSn) : functor Delta_op type_category
 
-context BDn'
+  definition SSn' := ΣX : SSn, (BDn X (succ n) → Type)
 
-parameter X : SSn'
+  context BDn'
 
-definition dpr1_X : SSn := dpr1 X
-definition dpr2_X : BDn (dpr1 X) (succ n) → Type := dpr2 X
+    parameter X : SSn'
+    definition dpr1_X := dpr1 X
+    definition dpr2_X := dpr2 X
 
-definition BDn'_object  (m : nat) :=
-  Σb : BDn (dpr1 X) m, Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α b)
+    definition BDnX_mor := @morphism _ _ _ _ (BDn (dpr1_X))
 
-definition BDn'_dpr1 {m : nat} (b : BDn'_object m) : BDn (dpr1 X) m := dpr1 b
-definition BDn'_dpr2 {m : nat} (b : BDn'_object m) :
-    Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α (BDn'_dpr1 b)) := dpr2 b
+    definition BDn'_object  (m : nat) :=
+      Σb : BDn (dpr1 X) m, Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α b)
+    definition BDn'_dpair {m : nat} (b : BDn (dpr1 X) m)
+	(f : Πα : inc_map (succ n) m, dpr2 X (BDn (dpr1 X) α b)) : BDn'_object m := dpair b f
+    definition BDn'_dpr1 {m : nat} (b : BDn'_object m) := dpr1 b
+    definition BDn'_dpr2 {m : nat} (b : BDn'_object m) := dpr2 b
 
--- set_option unifier.max_steps 100000
--- set_option pp.implicit true
--- set_option pp.coercions true
-definition BDn'_morphism {i j : nat} (α : inc_map j i) (b : BDn'_object i) : BDn'_object j :=
-  dpair (BDn (dpr1_X) α (dpr1 b))
-    (take α' : inc_map (succ n) j,
-      let t1 := BDn (dpr1_X) (inc_comp α α'),
---	t2 := (BDn (dpr1_X) α') ∘ (BDn (dpr1_X) α) in
-	t2 := @category.compose _ type_category _ _ _ (BDn (dpr1_X) α') (BDn (dpr1_X) α) in
-      have H : t1 = t2, from !respect_comp,
-      let t3 := BDn'_dpr2 b, t4 := inc_comp α α' in
-      let t5 := t3 t4 in
-      have H1 : (t1 (BDn'_dpr1 b)) = (t2 (BDn'_dpr1 b)), from congr_fun H _,
-      have H2 : dpr2_X (t1 (BDn'_dpr1 b)) = dpr2_X (t2 (BDn'_dpr1 b)), from congr_arg _ H1,
-      show dpr2 X (BDn (dpr1_X) α' (BDn (dpr1_X) α (BDn'_dpr1 b))),
-	from cast H2 t5)
+    definition BDn'_morphism {i j : nat} (α : inc_map j i) (b : BDn'_object i) : BDn'_object j :=
+    BDn'_dpair (BDnX_mor α (BDn'_dpr1 b))
+      (take α' : inc_map (succ n) j,
+	let t1 := BDnX_mor (inc_comp α α'),
+	  t2 := (BDnX_mor α') ∘ (BDnX_mor α) in
+	have H1 : t1 = t2, from !respect_comp,
+	have H : dpr2_X (t1 (BDn'_dpr1 b)) = dpr2_X (t2 (BDn'_dpr1 b)),
+	  from congr_arg _ (congr_fun H1 _),
+	cast H (BDn'_dpr2 b (inc_comp α α')))
 
 end BDn'
 
