@@ -25,7 +25,8 @@ heq.symm (cast_eq_to_heq (eq.symm H1))
 -- For now, axiomatize increasing maps from i to j.
 -- Later we can construct them using lists or ordinal types.
 
-constant inc_map (i j  : nat) : Type
+universe u
+constant inc_map (i j  : nat) : Type.{u}
 constant inc_id {i : nat} : inc_map i i
 constant inc_comp ⦃i j k : nat⦄ (α : inc_map j k) (β : inc_map i j) : inc_map i k
 axiom inc_comp_assoc ⦃i j k l : nat⦄ (α : inc_map k l) (β : inc_map j k) (γ : inc_map i j) :
@@ -160,6 +161,21 @@ context SSn'
       qed,
     BDn'_fun_eq H
 
+    theorem aux2a {i j k : nat} (β : inc_map k j) (α : inc_map j i)
+      (b : BDnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BDnX_mor α b))
+	(α' : inc_map (succ n) k) :
+      BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
+	f (inc_comp α (inc_comp β α')) :=
+    let b_aux := (BDnX_mor α b), f_aux := (take α' : inc_map (succ n) j,
+      cast (comp_eq_aux α α' (BDn'_dpair b f)) (f (inc_comp α α'))) in
+    show BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
+	f (inc_comp α (inc_comp β α')), from
+      calc
+	BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
+	    cast (comp_eq_aux β α' (BDn'_dpair b_aux f_aux)) (f_aux (inc_comp β α')) : !heq.refl
+	  ... == f_aux (inc_comp β α') : !cast_heq
+	  ... == f (inc_comp α (inc_comp β α')) : !cast_heq
+
     theorem aux2 (i j k : nat) (β : inc_map k j) (α : inc_map j i)
       (b : BDnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BDnX_mor α b))
 	(H1 : BDn'_dpr1 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) =
@@ -180,7 +196,9 @@ context SSn'
 	    BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α' : !eq_rec_on_heq
 	  ... == f (inc_comp (inc_comp α β) α') : eq_cast_to_heq H2
 	  ... == f (inc_comp α (inc_comp β α')) : dcongr_arg _ (eq.symm (inc_comp_assoc _ _ _))
-	  ... == BDn'_dpr2 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) α' : sorry,
+	  ... == BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' :
+		   heq.symm (aux2a β α b f α')
+	  ... == BDn'_dpr2 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) α' : !heq.refl,
     heq.to_eq H3
 
     theorem BDn'_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
