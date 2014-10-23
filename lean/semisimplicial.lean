@@ -220,6 +220,9 @@ context SSn'
       qed,
     BDn'_fun_eq H
 
+    definition BDn' : functor Delta_op type_category :=
+    functor.mk BDn'_object (@BDn'_morphism) BDn'_respect_id BDn'_respect_comp
+
   end BDn'
 
 end SSn'
