@@ -5,6 +5,14 @@
 -- semisimplicial types
 -- ====================
 
+-- This construction was explained to me by Richard Garner. I believe it is essentially the
+-- same as one presented by Vladimir Voevodsky.
+--
+-- The intuition: (SS n) and (Bd n) are defined recursively. For each n:
+--
+--   SS n represents the (n-1)-dimensional simplicial types.
+--   For each X : SS n, Bd n X m represents the maps from sk_n (Delta_m) into X.
+
 import logic algebra.category.constructions data.nat
 import logic.axioms.funext
 
@@ -46,20 +54,20 @@ instance type_category
 
 definition SS0 := Type
 
-context BD0
+context Bd0
 
   parameter X : SS0
 
-  definition BD0_object (m : nat) := X
-  definition BD0_morphism {i j : nat} (α : inc_map j i) (x : BD0_object i) : BD0_object j := x
-  theorem BD0_respect_id (i : nat) : BD0_morphism (@inc_id i) = λx, x := rfl
-  theorem BD0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
-    BD0_morphism (inc_comp α β) = BD0_morphism β ∘ BD0_morphism α := rfl
+  definition Bd0_object (m : nat) := X
+  definition Bd0_morphism {i j : nat} (α : inc_map j i) (x : Bd0_object i) : Bd0_object j := x
+  theorem Bd0_respect_id (i : nat) : Bd0_morphism (@inc_id i) = λx, x := rfl
+  theorem Bd0_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
+    Bd0_morphism (inc_comp α β) = Bd0_morphism β ∘ Bd0_morphism α := rfl
 
-  definition BD0 : functor Delta_op type_category :=
-  functor.mk BD0_object (@BD0_morphism) BD0_respect_id BD0_respect_comp
+  definition Bd0 : functor Delta_op type_category :=
+  functor.mk Bd0_object (@Bd0_morphism) Bd0_respect_id Bd0_respect_comp
 
-end BD0
+end Bd0
 
 
 -- successor step
@@ -71,158 +79,155 @@ context SSn'
 
   -- assume n case is done
   parameter SSn : Type
-  parameter BDn (X : SSn) : functor Delta_op type_category
+  parameter Bdn (X : SSn) : functor Delta_op type_category
 
-  definition SSn' := ΣX : SSn, (BDn X (succ n) → Type)
+  definition SSn' := ΣX : SSn, (Bdn X (succ n) → Type)
 
-  context BDn'
+  context Bdn'
 
     parameter X : SSn'
     definition dpr1_X := dpr1 X
     definition dpr2_X := dpr2 X
 
-    definition BDnX_obj := @(object (BDn (dpr1_X)))
-    definition BDnX_mor := @(morphism (BDn (dpr1_X)))
+    definition BdnX_obj := @(object (Bdn (dpr1_X)))
+    definition BdnX_mor := @(morphism (Bdn (dpr1_X)))
 
-    definition BDn'_object  (m : nat) :=
-      Σb : BDnX_obj m, Πα : inc_map (succ n) m, dpr2_X (BDnX_mor α b)
+    definition Bdn'_object  (m : nat) :=
+      Σb : BdnX_obj m, Πα : inc_map (succ n) m, dpr2_X (BdnX_mor α b)
 
-    definition BDn'_dpair {m : nat} (b : BDnX_obj m)
-	(f : Πα : inc_map (succ n) m, dpr2_X (BDnX_mor α b)) : BDn'_object m := dpair b f
-    definition BDn'_dpr1 {m : nat} (b : BDn'_object m) := dpr1 b
-    definition BDn'_dpr2 {m : nat} (b : BDn'_object m) := dpr2 b
+    definition Bdn'_dpair {m : nat} (b : BdnX_obj m)
+	(f : Πα : inc_map (succ n) m, dpr2_X (BdnX_mor α b)) : Bdn'_object m := dpair b f
+    definition Bdn'_dpr1 {m : nat} (b : Bdn'_object m) := dpr1 b
+    definition Bdn'_dpr2 {m : nat} (b : Bdn'_object m) := dpr2 b
 
-    theorem BDn'_object_equal {m : nat} {b1 b2 : BDn'_object m} (H1 : BDn'_dpr1 b1 = BDn'_dpr1 b2)
-      (H2 : eq.rec_on H1 (BDn'_dpr2 b1) = BDn'_dpr2 b2) : b1 = b2 :=
+    theorem Bdn'_object_equal {m : nat} {b1 b2 : Bdn'_object m} (H1 : Bdn'_dpr1 b1 = Bdn'_dpr1 b2)
+      (H2 : eq.rec_on H1 (Bdn'_dpr2 b1) = Bdn'_dpr2 b2) : b1 = b2 :=
     sigma.equal H1 H2
 
-    theorem temp {m : nat} {b1 b2 : BDn'_object m} (H1 : BDn'_dpr1 b1 = BDn'_dpr1 b2) :
-      eq.rec_on H1 (BDn'_dpr2 b1) = λα : inc_map (succ n) m, eq.rec_on H1 (BDn'_dpr2 b1 α) :=
-    eq.rec_on H1 rfl
-
-    -- set_option pp.implicit true
-    theorem BDn'_object_equal' {m : nat} {b1 b2 : BDn'_object m} (H1 : BDn'_dpr1 b1 = BDn'_dpr1 b2)
-      (H2 : ∀α : inc_map (succ n) m, eq.rec_on H1 (BDn'_dpr2 b1 α) = BDn'_dpr2 b2 α) : b1 = b2 :=
-    have H3 : (λα : inc_map (succ n) m, eq.rec_on H1 (BDn'_dpr2 b1 α)) = BDn'_dpr2 b2,
+    theorem Bdn'_object_equal' {m : nat} {b1 b2 : Bdn'_object m} (H1 : Bdn'_dpr1 b1 = Bdn'_dpr1 b2)
+      (H2 : ∀α : inc_map (succ n) m, eq.rec_on H1 (Bdn'_dpr2 b1 α) = Bdn'_dpr2 b2 α) : b1 = b2 :=
+    have H3 : eq.rec_on H1 (Bdn'_dpr2 b1) = λα : inc_map (succ n) m, eq.rec_on H1 (Bdn'_dpr2 b1 α),
+      from eq.rec_on H1 rfl,
+    have H4 : (λα : inc_map (succ n) m, eq.rec_on H1 (Bdn'_dpr2 b1 α)) = Bdn'_dpr2 b2,
       from funext H2,
-    BDn'_object_equal H1 (eq.trans (temp H1) H3)
+    Bdn'_object_equal H1 (eq.trans H3 H4)
 
-    theorem BDn'_fun_eq {i j : nat} {f1 f2 : BDn'_object i → BDn'_object j}
-      (H : ∀b : BDnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (BDn (dpr1 X) α b),
-	f1 (BDn'_dpair b f) = f2 (BDn'_dpair b f)) : f1 = f2 :=
-    funext (take b : BDn'_object i, sigma.destruct b H)
+    theorem Bdn'_fun_eq {i j : nat} {f1 f2 : Bdn'_object i → Bdn'_object j}
+      (H : ∀b : BdnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (Bdn (dpr1 X) α b),
+	f1 (Bdn'_dpair b f) = f2 (Bdn'_dpair b f)) : f1 = f2 :=
+    funext (take b : Bdn'_object i, sigma.destruct b H)
 
     theorem comp_eq_aux {i j : nat} (α : inc_map j i) (α' : inc_map (succ n) j)
-	(b : BDn'_object i) :
-      dpr2_X (BDnX_mor (inc_comp α α') (BDn'_dpr1 b)) =
-	dpr2_X (((BDnX_mor α') ∘ (BDnX_mor α)) (BDn'_dpr1 b)) :=
-    have H1 : BDnX_mor (inc_comp α α') = (BDnX_mor α') ∘ (BDnX_mor α), from !respect_comp,
+	(b : Bdn'_object i) :
+      dpr2_X (BdnX_mor (inc_comp α α') (Bdn'_dpr1 b)) =
+	dpr2_X (((BdnX_mor α') ∘ (BdnX_mor α)) (Bdn'_dpr1 b)) :=
+    have H1 : BdnX_mor (inc_comp α α') = (BdnX_mor α') ∘ (BdnX_mor α), from !respect_comp,
     congr_arg _ (congr_fun H1 _)
 
-    definition BDn'_morphism {i j : nat} (α : inc_map j i) (b : BDn'_object i) : BDn'_object j :=
-    BDn'_dpair (BDnX_mor α (BDn'_dpr1 b))
+    definition Bdn'_morphism {i j : nat} (α : inc_map j i) (b : Bdn'_object i) : Bdn'_object j :=
+    Bdn'_dpair (BdnX_mor α (Bdn'_dpr1 b))
       (take α' : inc_map (succ n) j,
-	cast (comp_eq_aux α α' b) (BDn'_dpr2 b (inc_comp α α')))
+	cast (comp_eq_aux α α' b) (Bdn'_dpr2 b (inc_comp α α')))
 
     -- TODO: why do I have to supply the predicate for eq.rec_on?
-    theorem aux (i : nat) (b : BDnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BDnX_mor α b))
-	(H1 : BDn'_dpr1 (BDn'_morphism  (@inc_id i) (BDn'_dpair b f)) =
-	    BDn'_dpr1 (BDn'_dpair b f)) (α : inc_map (succ n) i) :
-	@eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α b)) H1
-	  (BDn'_dpr2 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) α) =
-		BDn'_dpr2 (BDn'_dpair b f) α :=
-    let H' := comp_eq_aux (@inc_id i) α (BDn'_dpair b f) in
-    have H2 : BDn'_dpr2 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) α =
+    theorem aux (i : nat) (b : BdnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BdnX_mor α b))
+	(H1 : Bdn'_dpr1 (Bdn'_morphism  (@inc_id i) (Bdn'_dpair b f)) =
+	    Bdn'_dpr1 (Bdn'_dpair b f)) (α : inc_map (succ n) i) :
+	@eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α b)) H1
+	  (Bdn'_dpr2 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) α) =
+		Bdn'_dpr2 (Bdn'_dpair b f) α :=
+    let H' := comp_eq_aux (@inc_id i) α (Bdn'_dpair b f) in
+    have H2 : Bdn'_dpr2 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) α =
       cast H' (f (inc_comp (@inc_id i) α)), from rfl,
-    have H3 : @eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α b)) H1
-	(BDn'_dpr2 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) α) ==
-	BDn'_dpr2 (BDn'_dpair b f) α, from
+    have H3 : @eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α b)) H1
+	(Bdn'_dpr2 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) α) ==
+	Bdn'_dpr2 (Bdn'_dpair b f) α, from
       calc
-	@eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α b)) H1
-	  (BDn'_dpr2 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) α) ==
-	  BDn'_dpr2 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) α : !eq_rec_on_heq
+	@eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α b)) H1
+	  (Bdn'_dpr2 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) α) ==
+	  Bdn'_dpr2 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) α : !eq_rec_on_heq
 	    ... == f (inc_comp (@inc_id i) α) : eq_cast_to_heq H2
 	    ... == f α : dcongr_arg _ (inc_comp_idl _)
-	    ... == BDn'_dpr2 (BDn'_dpair b f) α : heq.refl _,
+	    ... == Bdn'_dpr2 (Bdn'_dpair b f) α : heq.refl _,
     heq.to_eq H3
 
-    theorem BDn'_respect_id (i : nat) : BDn'_morphism (@inc_id i) = λx, x :=
-    have H : ∀b : BDnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (BDn (dpr1 X) α b),
-	BDn'_morphism (@inc_id i) (BDn'_dpair b f) = (BDn'_dpair b f),
+    theorem Bdn'_respect_id (i : nat) : Bdn'_morphism (@inc_id i) = λx, x :=
+    have H : ∀b : BdnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (Bdn (dpr1 X) α b),
+	Bdn'_morphism (@inc_id i) (Bdn'_dpair b f) = (Bdn'_dpair b f),
       proof
 	take b f,
-	have H1 : BDn'_dpr1 (BDn'_morphism  (@inc_id i) (BDn'_dpair b f)) = b, from
+	have H1 : Bdn'_dpr1 (Bdn'_morphism  (@inc_id i) (Bdn'_dpair b f)) = b, from
 	  calc
-	    BDn'_dpr1 (BDn'_morphism (@inc_id i) (BDn'_dpair b f)) = (BDnX_mor (@inc_id i) b) : rfl
-	       ... = id b : congr_fun (@respect_id _ _ _ type_category (BDn (dpr1_X)) i) b
+	    Bdn'_dpr1 (Bdn'_morphism (@inc_id i) (Bdn'_dpair b f)) = (BdnX_mor (@inc_id i) b) : rfl
+	       ... = id b : congr_fun (@respect_id _ _ _ type_category (Bdn (dpr1_X)) i) b
 	       ... = b : rfl,  -- TODO: why do we need to supply type_category?
-	show BDn'_morphism (@inc_id i) (BDn'_dpair b f) = (BDn'_dpair b f), from
-	  BDn'_object_equal' H1 (aux i b f H1)
+	show Bdn'_morphism (@inc_id i) (Bdn'_dpair b f) = (Bdn'_dpair b f), from
+	  Bdn'_object_equal' H1 (aux i b f H1)
       qed,
-    BDn'_fun_eq H
+    Bdn'_fun_eq H
 
     theorem aux2a {i j k : nat} (β : inc_map k j) (α : inc_map j i)
-      (b : BDnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BDnX_mor α b))
+      (b : BdnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BdnX_mor α b))
 	(α' : inc_map (succ n) k) :
-      BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
+      Bdn'_dpr2 ((Bdn'_morphism β) ((Bdn'_morphism α) (Bdn'_dpair b f))) α' ==
 	f (inc_comp α (inc_comp β α')) :=
-    let b_aux := (BDnX_mor α b), f_aux := (take α' : inc_map (succ n) j,
-      cast (comp_eq_aux α α' (BDn'_dpair b f)) (f (inc_comp α α'))) in
-    show BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
+    let b_aux := (BdnX_mor α b), f_aux := (take α' : inc_map (succ n) j,
+      cast (comp_eq_aux α α' (Bdn'_dpair b f)) (f (inc_comp α α'))) in
+    show Bdn'_dpr2 ((Bdn'_morphism β) ((Bdn'_morphism α) (Bdn'_dpair b f))) α' ==
 	f (inc_comp α (inc_comp β α')), from
       calc
-	BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' ==
-	    cast (comp_eq_aux β α' (BDn'_dpair b_aux f_aux)) (f_aux (inc_comp β α')) : !heq.refl
+	Bdn'_dpr2 ((Bdn'_morphism β) ((Bdn'_morphism α) (Bdn'_dpair b f))) α' ==
+	    cast (comp_eq_aux β α' (Bdn'_dpair b_aux f_aux)) (f_aux (inc_comp β α')) : !heq.refl
 	  ... == f_aux (inc_comp β α') : !cast_heq
 	  ... == f (inc_comp α (inc_comp β α')) : !cast_heq
 
     theorem aux2 (i j k : nat) (β : inc_map k j) (α : inc_map j i)
-      (b : BDnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BDnX_mor α b))
-	(H1 : BDn'_dpr1 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) =
-	    BDn'_dpr1 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)))
+      (b : BdnX_obj i) (f : Πα : inc_map (succ n) i, dpr2_X (BdnX_mor α b))
+	(H1 : Bdn'_dpr1 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) =
+	    Bdn'_dpr1 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)))
 	(α' : inc_map (succ n) k) :
-	@eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α' b)) H1
-	  (BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α') =
-	  BDn'_dpr2 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) α' :=
-    let H' := comp_eq_aux (inc_comp α β) α' (BDn'_dpair b f) in
-    have H2 : BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α' =
+	@eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α' b)) H1
+	  (Bdn'_dpr2 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) α') =
+	  Bdn'_dpr2 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)) α' :=
+    let H' := comp_eq_aux (inc_comp α β) α' (Bdn'_dpair b f) in
+    have H2 : Bdn'_dpr2 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) α' =
       cast H' (f (inc_comp (inc_comp α β) α')), from rfl,
-    have H3 : @eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α' b)) H1
-	(BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α') ==
-	BDn'_dpr2 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) α', from
+    have H3 : @eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α' b)) H1
+	(Bdn'_dpr2 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) α') ==
+	Bdn'_dpr2 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)) α', from
       calc
-	@eq.rec_on _ _ _ (fun b e, dpr2_X (BDnX_mor α' b)) H1
-	    (BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α') ==
-	    BDn'_dpr2 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) α' : !eq_rec_on_heq
+	@eq.rec_on _ _ _ (fun b e, dpr2_X (BdnX_mor α' b)) H1
+	    (Bdn'_dpr2 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) α') ==
+	    Bdn'_dpr2 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) α' : !eq_rec_on_heq
 	  ... == f (inc_comp (inc_comp α β) α') : eq_cast_to_heq H2
 	  ... == f (inc_comp α (inc_comp β α')) : dcongr_arg _ (eq.symm (inc_comp_assoc _ _ _))
-	  ... == BDn'_dpr2 ((BDn'_morphism β) ((BDn'_morphism α) (BDn'_dpair b f))) α' :
+	  ... == Bdn'_dpr2 ((Bdn'_morphism β) ((Bdn'_morphism α) (Bdn'_dpair b f))) α' :
 		   heq.symm (aux2a β α b f α')
-	  ... == BDn'_dpr2 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) α' : !heq.refl,
+	  ... == Bdn'_dpr2 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)) α' : !heq.refl,
     heq.to_eq H3
 
-    theorem BDn'_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
-	BDn'_morphism (inc_comp α β) = BDn'_morphism β ∘ BDn'_morphism α :=
-    have H0 : BDnX_mor (inc_comp α β) = (BDnX_mor β) ∘ (BDnX_mor α), from !respect_comp,
-    have H : ∀b : BDnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (BDn (dpr1 X) α b),
-	BDn'_morphism (inc_comp α β) (BDn'_dpair b f) =
-	  (BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f),
+    theorem Bdn'_respect_comp (i j k : nat) (β : inc_map k j) (α : inc_map j i) :
+	Bdn'_morphism (inc_comp α β) = Bdn'_morphism β ∘ Bdn'_morphism α :=
+    have H0 : BdnX_mor (inc_comp α β) = (BdnX_mor β) ∘ (BdnX_mor α), from !respect_comp,
+    have H : ∀b : BdnX_obj i, ∀f : Πα : inc_map (succ n) i, dpr2 X (Bdn (dpr1 X) α b),
+	Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f) =
+	  (Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f),
       proof
 	take b f,
-	have H1 : BDn'_dpr1 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) =
-	    BDn'_dpr1 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)), from
+	have H1 : Bdn'_dpr1 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) =
+	    Bdn'_dpr1 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)), from
 	  calc
-	    BDn'_dpr1 (BDn'_morphism (inc_comp α β) (BDn'_dpair b f)) =
-		(BDnX_mor (inc_comp α β) b) : rfl
-	       ... = ((BDnX_mor β) ∘ (BDnX_mor α)) b : congr_fun H0 b
-	       ... = BDn'_dpr1 ((BDn'_morphism β ∘ BDn'_morphism α) (BDn'_dpair b f)) : rfl,
-	BDn'_object_equal' H1 (aux2 i j k β α b f H1)
+	    Bdn'_dpr1 (Bdn'_morphism (inc_comp α β) (Bdn'_dpair b f)) =
+		(BdnX_mor (inc_comp α β) b) : rfl
+	       ... = ((BdnX_mor β) ∘ (BdnX_mor α)) b : congr_fun H0 b
+	       ... = Bdn'_dpr1 ((Bdn'_morphism β ∘ Bdn'_morphism α) (Bdn'_dpair b f)) : rfl,
+	Bdn'_object_equal' H1 (aux2 i j k β α b f H1)
       qed,
-    BDn'_fun_eq H
+    Bdn'_fun_eq H
 
-    definition BDn' : functor Delta_op type_category :=
-    functor.mk BDn'_object (@BDn'_morphism) BDn'_respect_id BDn'_respect_comp
+    definition Bdn' : functor Delta_op type_category :=
+    functor.mk Bdn'_object (@Bdn'_morphism) Bdn'_respect_id Bdn'_respect_comp
 
-  end BDn'
+  end Bdn'
 
 end SSn'
