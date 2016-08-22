@@ -109,13 +109,13 @@ meta_definition unfold_all (ns : list name) : tactic unit :=
 do unfold ns, local_context >>= collect_props >>= monad.mapM' (unfold_at ns)
 
 meta_definition head_symbol : expr → name
-| (const n _)  := n
-| (app e _)    := match (get_app_fn e) with
-                  | (const n l) := n
-                  | _           := `none
-                  end
-| (pi _ _ _ _) := `pi
-| _            := `none
+| (const n a)      := n
+| (app e a)        := match (get_app_fn e) with
+                      | (const n l) := n
+                      | a           := `none
+                      end
+| (pi a₁ a₂ a₃ a₄) := `pi
+| a                := `none
 
 private meta_definition whnf_red : expr → tactic expr := whnf_core reducible
 
